@@ -14,7 +14,7 @@ class StrategyConfig:
 
 	short_window: int = 100
 	long_window: int = 190
-	price_column: str = "Adj Close"
+	price_column: str = "QQQ_Close"
 
 
 def add_indicators(
@@ -83,4 +83,5 @@ def generate_signals(
 	frame["signal"] = np.select([buy_signal, sell_signal], [1, -1], default=0)
 	frame["target_position"] = raw_position.ffill().fillna(0).astype(int)
 	return frame
+
 
