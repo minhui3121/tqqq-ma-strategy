@@ -12,7 +12,7 @@ class BacktestConfig:
 	"""Configuration values for the backtest engine."""
 
 	initial_capital: float = 10_000.0
-	price_column: str = "Adj Close"
+	price_column: str = "TQQQ_Close"
 	position_column: str = "target_position"
 
 
@@ -27,10 +27,14 @@ class BacktestResult:
 def run_backtest(
 	data: pd.DataFrame,
 	initial_capital: float = 10_000.0,
-	price_column: str = "Adj Close",
+	price_column: str = "TQQQ_Close",
 	position_column: str = "target_position",
 ) -> BacktestResult:
-	"""Simulate a long-only, fully invested backtest with full capital allocation."""
+	"""Simulate a long-only, fully invested backtest on TQQQ prices.
+	
+	Signals are generated from QQQ price/SMA data.
+	Portfolio trades execute on TQQQ prices.
+	"""
 
 	if price_column not in data.columns:
 		raise ValueError(f"Expected price column '{price_column}' was not found.")

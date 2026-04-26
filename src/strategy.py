@@ -21,9 +21,12 @@ def add_indicators(
 	data: pd.DataFrame,
 	short_window: int = 100,
 	long_window: int = 200,
-	price_column: str = "Adj Close",
+	price_column: str = "QQQ_Close",
 ) -> pd.DataFrame:
-	"""Add SMA indicators to a price dataframe."""
+	"""Add SMA indicators to QQQ price data.
+
+	SMAs are always calculated on QQQ_Close for signal generation.
+	"""
 
 	if short_window <= 0 or long_window <= 0:
 		raise ValueError("SMA windows must be positive integers.")
@@ -42,12 +45,13 @@ def generate_signals(
 	data: pd.DataFrame,
 	short_window: int = 100,
 	long_window: int = 200,
-	price_column: str = "Adj Close",
+	price_column: str = "QQQ_Close",
 ) -> pd.DataFrame:
-	"""Generate buy/sell signals and the resulting long-only target position.
+	"""Generate buy/sell signals based on QQQ prices and SMAs.
 
-	Buy signal when price > SMA short and price > SMA long.
-	Sell signal when price < SMA long.
+	Buy signal when QQQ price > SMA100(QQQ) AND QQQ price > SMA200(QQQ).
+	Sell signal when QQQ price < SMA200(QQQ) * 1.01 (with 1% buffer).
+	Trades execute on TQQQ prices.
 	The target position is 1 when long and 0 when flat.
 	"""
 
@@ -60,7 +64,7 @@ def generate_signals(
 
 	price = frame[price_column]
 	buy_signal = (price > frame["sma100"]) & (price > frame["sma200"])
-	sell_signal = price < frame["sma200"]
+	sell_signal = price < frame["sma200"] * 1.01
 
 	raw_position = pd.Series(
 		np.select([buy_signal, sell_signal], [1, 0], default=np.nan),

@@ -7,8 +7,18 @@ import argparse
 import matplotlib.pyplot as plt
 
 from src.backtest import run_backtest
-from src.data_loader import download_tqqq_data, prepare_price_series
-from src.metrics import calculate_performance_metrics, format_metrics
+from src.data_loader import download_qqq_and_tqqq_data
+from src.metrics import (
+    calculate_performance_metrics,
+    export_backtest_summary,
+    export_daily_portfolio_to_csv,
+    export_signals_to_csv,
+    export_trades_to_csv,
+    extract_trades,
+    find_max_drawdown_point,
+    format_metrics,
+    sample_portfolio_evolution,
+)
 from src.strategy import generate_signals
 
 
@@ -29,22 +39,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def plot_results(backtest_data, price_column: str = "Adj Close") -> None:
-    """Plot price/SMA overlays and the portfolio value series."""
+def plot_results(backtest_data, price_column: str = "QQQ_Close") -> None:
+    """Plot QQQ price/SMA overlays and the TQQQ portfolio value series."""
 
     fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
-    axes[0].plot(backtest_data.index, backtest_data[price_column], label="Adj Close", linewidth=1.4)
-    axes[0].plot(backtest_data.index, backtest_data["sma100"], label="SMA 100", linewidth=1.2)
-    axes[0].plot(backtest_data.index, backtest_data["sma200"], label="SMA 200", linewidth=1.2)
-    axes[0].set_title("TQQQ Price with Moving Averages")
-    axes[0].set_ylabel("Price")
+    axes[0].plot(backtest_data.index, backtest_data[price_column], label="QQQ Close", linewidth=1.4)
+    axes[0].plot(backtest_data.index, backtest_data["sma100"], label="QQQ SMA 100", linewidth=1.2)
+    axes[0].plot(backtest_data.index, backtest_data["sma200"], label="QQQ SMA 200", linewidth=1.2)
+    axes[0].set_title("QQQ Price with Moving Averages (Signal Generation)")
+    axes[0].set_ylabel("QQQ Price")
     axes[0].legend()
     axes[0].grid(True, alpha=0.3)
 
-    axes[1].plot(backtest_data.index, backtest_data["portfolio_value"], label="Portfolio Value", color="black")
-    axes[1].set_title("Portfolio Value Over Time")
-    axes[1].set_ylabel("Value")
+    axes[1].plot(backtest_data.index, backtest_data["portfolio_value"], label="TQQQ Portfolio Value", color="black")
+    axes[1].set_title("TQQQ Portfolio Value Over Time")
+    axes[1].set_ylabel("Portfolio Value ($)")
     axes[1].set_xlabel("Date")
     axes[1].legend()
     axes[1].grid(True, alpha=0.3)
@@ -59,10 +69,11 @@ def plot_results(backtest_data, price_column: str = "Adj Close") -> None:
 def run_pipeline(args: argparse.Namespace) -> None:
     """Run the full data, strategy, backtest, metrics, and plotting pipeline."""
 
-    raw_data = download_tqqq_data(start_date=args.start, end_date=args.end or None)
-    prepared_data = prepare_price_series(raw_data)
+    print("Downloading QQQ and TQQQ data...")
+    merged_data = download_qqq_and_tqqq_data(start_date=args.start, end_date=args.end or None)
+    
     signal_data = generate_signals(
-        prepared_data,
+        merged_data,
         short_window=args.short_window,
         long_window=args.long_window,
     )
@@ -76,10 +87,67 @@ def run_pipeline(args: argparse.Namespace) -> None:
         initial_capital=backtest_result.initial_capital,
     )
 
+    print("\n" + "="*70)
+    print("BACKTEST RESULTS")
+    print("="*70)
+    print(f"Period: {args.start} to {args.end or 'today'}")
+    print(f"Initial Capital: ${args.initial_capital:,.2f}")
+    print(f"Final Value: ${backtest_result.data['portfolio_value'].iloc[-1]:,.2f}")
+    print()
     print("Performance Metrics")
-    print("===================")
+    print("-" * 70)
     print(format_metrics(metrics))
+    print()
+
+    trades = extract_trades(backtest_result.data)
+    print(f"Total Trades: {len(trades)}")
+    print("Last 5 Trades:")
+    print("-" * 70)
+    for i, trade in enumerate(trades[-5:], start=1):
+        entry_date = trade["entry_date"].strftime("%Y-%m-%d")
+        exit_date = trade["exit_date"].strftime("%Y-%m-%d")
+        trade_ret = trade["trade_return"]
+        print(
+            f"{i}. Entry: {entry_date} @ ${trade['entry_price']:.2f} | "
+            f"Exit: {exit_date} @ ${trade['exit_price']:.2f} | "
+            f"Return: {trade_ret:+.2%}"
+        )
+    print()
+
+    max_dd_date, peak_value, trough_value = find_max_drawdown_point(backtest_result.data)
+    print("Max Drawdown Analysis")
+    print("-" * 70)
+    print(f"Date: {max_dd_date.strftime('%Y-%m-%d')}")
+    print(f"Peak Value: ${peak_value:,.2f}")
+    print(f"Trough Value: ${trough_value:,.2f}")
+    print(f"Drawdown: {(trough_value / peak_value - 1):.2%}")
+    print()
+
+    print("Portfolio Evolution (Sample)")
+    print("-" * 70)
+    evolution = sample_portfolio_evolution(backtest_result.data)
+    for date, row in evolution.iterrows():
+        pct_of_initial = row["portfolio_value"] / args.initial_capital
+        print(f"{date.strftime('%Y-%m-%d')}: ${row['portfolio_value']:>12,.2f} ({pct_of_initial:>7.2%})")
+    print()
+    print("="*70 + "\n")
+
     plot_results(backtest_result.data)
+
+    print("\nEXPORTING DETAILED RESULTS")
+    print("="*70)
+    export_trades_to_csv(trades, args.initial_capital, output_file="trades.csv")
+    export_daily_portfolio_to_csv(backtest_result.data, args.initial_capital, output_file="portfolio_daily.csv")
+    export_signals_to_csv(backtest_result.data, output_file="signals.csv")
+    export_backtest_summary(
+        metrics,
+        trades,
+        args.initial_capital,
+        args.start,
+        args.end or "today",
+        output_file="backtest_summary.txt",
+    )
+    print("="*70 + "\n")
 
 
 def main() -> None:
