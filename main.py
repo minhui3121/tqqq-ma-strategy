@@ -70,7 +70,12 @@ def run_pipeline(args: argparse.Namespace) -> None:
     """Run the full data, strategy, backtest, metrics, and plotting pipeline."""
 
     print("Downloading QQQ and TQQQ data...")
-    merged_data = download_qqq_and_tqqq_data(start_date=args.start, end_date=args.end or None)
+    merged_data = download_qqq_and_tqqq_data(
+        start_date=args.start,
+        end_date=args.end or None,
+        short_window=args.short_window,
+        long_window=args.long_window,
+    )
     
     signal_data = generate_signals(
         merged_data,

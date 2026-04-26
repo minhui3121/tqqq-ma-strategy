@@ -44,8 +44,8 @@ def run_backtest(
 		raise ValueError("initial_capital must be positive.")
 
 	frame = data.copy().sort_index()
-	frame = frame.dropna(subset=[price_column, position_column])
-	frame[position_column] = frame[position_column].astype(int).clip(0, 1)
+	frame = frame.dropna(subset=[price_column])
+	frame[position_column] = frame[position_column].fillna(0).astype(int).clip(0, 1)
 
 	cash_history: list[float] = []
 	shares_history: list[float] = []

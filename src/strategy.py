@@ -26,6 +26,7 @@ def add_indicators(
 	"""Add SMA indicators to QQQ price data.
 
 	SMAs are always calculated on QQQ_Close for signal generation.
+	If SMAs already exist in the data, they are preserved (not recalculated).
 	"""
 
 	if short_window <= 0 or long_window <= 0:
@@ -36,8 +37,13 @@ def add_indicators(
 		raise ValueError(f"Expected price column '{price_column}' was not found.")
 
 	frame = data.copy().sort_index()
-	frame["sma100"] = frame[price_column].rolling(window=short_window, min_periods=short_window).mean()
-	frame["sma200"] = frame[price_column].rolling(window=long_window, min_periods=long_window).mean()
+	
+	# Only recalculate SMAs if they don't already exist
+	if "sma100" not in frame.columns:
+		frame["sma100"] = frame[price_column].rolling(window=short_window, min_periods=short_window).mean()
+	if "sma200" not in frame.columns:
+		frame["sma200"] = frame[price_column].rolling(window=long_window, min_periods=long_window).mean()
+	
 	return frame
 
 
