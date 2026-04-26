@@ -120,6 +120,9 @@ def download_qqq_and_tqqq_data(
 	data = pd.DataFrame({"QQQ_Close": qqq["Close"]})
 	
 	# Add TQQQ where it exists (from Feb 11, 2010 onwards)
+	if "Open" not in tqqq.columns:
+		raise ValueError("Missing required columns from TQQQ: ['Open']")
+	data["TQQQ_Open"] = tqqq["Open"]
 	data["TQQQ_Close"] = tqqq["Adj Close"]
 	
 	# Calculate SMAs on full QQQ history prior to trimming to executable dates.
@@ -127,7 +130,7 @@ def download_qqq_and_tqqq_data(
 	data["sma200"] = data["QQQ_Close"].rolling(window=long_window, min_periods=long_window).mean()
 	
 	# Filter to dates where TQQQ exists (this is where trading can actually happen)
-	data = data.dropna(subset=["TQQQ_Close"])
+	data = data.dropna(subset=["TQQQ_Open", "TQQQ_Close"])
 	data = data.loc[data.index >= start_date_dt]
 	
 	if data.empty:

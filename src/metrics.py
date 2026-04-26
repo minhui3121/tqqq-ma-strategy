@@ -60,7 +60,7 @@ def format_metrics(metrics: dict[str, float]) -> str:
 
 def extract_trades(
 	backtest_data: pd.DataFrame,
-	price_column: str = "TQQQ_Close",
+	price_column: str = "trade_price",
 	position_column: str = "position",
 ) -> list[dict]:
 	"""Extract individual trades from backtest results using TQQQ execution prices.
@@ -75,7 +75,7 @@ def extract_trades(
 	shares = 0.0
 
 	for idx, row in backtest_data.iterrows():
-		price = float(row[price_column])
+		price = float(row[price_column]) if price_column in row and not pd.isna(row[price_column]) else float(row.get("TQQQ_Close", 0.0))
 		position = int(row[position_column])
 		position_changed = row.get("trade_executed", 0)
 
@@ -196,7 +196,9 @@ def export_daily_portfolio_to_csv(
 		export_data.append({
 			"date": idx.strftime("%Y-%m-%d"),
 			"qqq_close": round(row.get("QQQ_Close", 0), 2),
+			"tqqq_open": round(row.get("TQQQ_Open", 0), 2),
 			"tqqq_close": round(row.get("TQQQ_Close", 0), 2),
+			"trade_price": round(row.get("trade_price", 0), 4) if "trade_price" in row and not pd.isna(row["trade_price"]) else "",
 			"sma100": round(row.get("sma100", 0), 2) if "sma100" in row and not pd.isna(row["sma100"]) else "",
 			"sma200": round(row.get("sma200", 0), 2) if "sma200" in row and not pd.isna(row["sma200"]) else "",
 			"position": int(row.get("position", 0)),
