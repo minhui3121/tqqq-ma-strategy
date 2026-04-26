@@ -12,7 +12,6 @@ class BacktestConfig:
 	"""Configuration values for the backtest engine."""
 
 	initial_capital: float = 10_000.0
-	transaction_cost: float = 0.001
 	price_column: str = "Adj Close"
 	position_column: str = "target_position"
 
@@ -23,21 +22,15 @@ class BacktestResult:
 
 	data: pd.DataFrame
 	initial_capital: float
-	transaction_cost: float
 
 
 def run_backtest(
 	data: pd.DataFrame,
 	initial_capital: float = 10_000.0,
-	transaction_cost: float = 0.001,
 	price_column: str = "Adj Close",
 	position_column: str = "target_position",
 ) -> BacktestResult:
-	"""Simulate a long-only, fully invested backtest with transaction costs.
-
-	The engine marks the portfolio to market at each close and applies
-	transaction costs when the target position changes.
-	"""
+	"""Simulate a long-only, fully invested backtest with full capital allocation."""
 
 	if price_column not in data.columns:
 		raise ValueError(f"Expected price column '{price_column}' was not found.")
@@ -45,8 +38,6 @@ def run_backtest(
 		raise ValueError(f"Expected position column '{position_column}' was not found.")
 	if initial_capital <= 0:
 		raise ValueError("initial_capital must be positive.")
-	if not 0 <= transaction_cost < 1:
-		raise ValueError("transaction_cost must be between 0 and 1.")
 
 	frame = data.copy().sort_index()
 	frame = frame.dropna(subset=[price_column, position_column])
@@ -67,21 +58,16 @@ def run_backtest(
 		target_position = int(row[position_column])
 
 		portfolio_before_trade = cash + shares * price
-		trade_executed = 0
+		trade_executed = int(target_position != actual_position)
 
 		if target_position != actual_position:
-			trade_executed = 1
 			if target_position == 1:
-				cost = portfolio_before_trade * transaction_cost
-				investable_capital = portfolio_before_trade - cost
-				shares = investable_capital / price
+				shares = portfolio_before_trade / price
 				cash = 0.0
 				actual_position = 1
-				portfolio_value = investable_capital
+				portfolio_value = portfolio_before_trade
 			else:
-				gross_proceeds = shares * price
-				cost = gross_proceeds * transaction_cost
-				cash = gross_proceeds - cost
+				cash = shares * price
 				shares = 0.0
 				actual_position = 0
 				portfolio_value = cash
@@ -99,4 +85,4 @@ def run_backtest(
 	frame["position"] = actual_position_history
 	frame["trade_executed"] = trade_history
 	frame["portfolio_value"] = portfolio_history
-	return BacktestResult(data=frame, initial_capital=initial_capital, transaction_cost=transaction_cost)
+	return BacktestResult(data=frame, initial_capital=initial_capital)

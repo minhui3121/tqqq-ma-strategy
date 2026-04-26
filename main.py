@@ -21,12 +21,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--short-window", type=int, default=100, help="Short SMA window.")
     parser.add_argument("--long-window", type=int, default=200, help="Long SMA window.")
     parser.add_argument(
-        "--transaction-cost",
-        type=float,
-        default=0.001,
-        help="Transaction cost per trade expressed as a decimal.",
-    )
-    parser.add_argument(
         "--initial-capital",
         type=float,
         default=10_000.0,
@@ -75,7 +69,6 @@ def run_pipeline(args: argparse.Namespace) -> None:
     backtest_result = run_backtest(
         signal_data,
         initial_capital=args.initial_capital,
-        transaction_cost=args.transaction_cost,
     )
 
     metrics = calculate_performance_metrics(
