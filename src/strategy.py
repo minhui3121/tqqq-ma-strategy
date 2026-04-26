@@ -13,14 +13,14 @@ class StrategyConfig:
 	"""Configuration for the moving-average strategy."""
 
 	short_window: int = 100
-	long_window: int = 200
+	long_window: int = 190
 	price_column: str = "Adj Close"
 
 
 def add_indicators(
 	data: pd.DataFrame,
 	short_window: int = 100,
-	long_window: int = 200,
+	long_window: int = 190,
 	price_column: str = "QQQ_Close",
 ) -> pd.DataFrame:
 	"""Add SMA indicators to QQQ price data.
@@ -41,8 +41,8 @@ def add_indicators(
 	# Only recalculate SMAs if they don't already exist
 	if "sma100" not in frame.columns:
 		frame["sma100"] = frame[price_column].rolling(window=short_window, min_periods=short_window).mean()
-	if "sma200" not in frame.columns:
-		frame["sma200"] = frame[price_column].rolling(window=long_window, min_periods=long_window).mean()
+	if "sma190" not in frame.columns:
+		frame["sma190"] = frame[price_column].rolling(window=long_window, min_periods=long_window).mean()
 	
 	return frame
 
@@ -50,13 +50,13 @@ def add_indicators(
 def generate_signals(
 	data: pd.DataFrame,
 	short_window: int = 100,
-	long_window: int = 200,
+	long_window: int = 190,
 	price_column: str = "QQQ_Close",
 ) -> pd.DataFrame:
 	"""Generate buy/sell signals based on QQQ prices and SMAs.
 
-	Buy signal when QQQ price > SMA100(QQQ) AND QQQ price > SMA200(QQQ).
-	Sell signal when QQQ price < SMA200(QQQ).
+	Buy signal when QQQ price > SMA100(QQQ) AND QQQ price > SMA190(QQQ).
+	Sell signal when QQQ price < SMA190(QQQ).
 	Trades execute on TQQQ prices.
 	The target position is 1 when long and 0 when flat.
 	"""
@@ -69,8 +69,8 @@ def generate_signals(
 	)
 
 	price = frame[price_column]
-	buy_signal = (price > frame["sma100"]) & (price > frame["sma200"])
-	sell_signal = price < frame["sma200"]
+	buy_signal = (price > frame["sma100"]) & (price > frame["sma190"])
+	sell_signal = price < frame["sma190"]
 
 	raw_position = pd.Series(
 		np.select([buy_signal, sell_signal], [1, 0], default=np.nan),
@@ -83,3 +83,4 @@ def generate_signals(
 	frame["signal"] = np.select([buy_signal, sell_signal], [1, -1], default=0)
 	frame["target_position"] = raw_position.ffill().fillna(0).astype(int)
 	return frame
+

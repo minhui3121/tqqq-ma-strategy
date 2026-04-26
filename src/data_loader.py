@@ -47,7 +47,7 @@ def download_qqq_and_tqqq_data(
 	start_date: str | datetime,
 	end_date: str | datetime | None,
 	short_window: int = 100,
-	long_window: int = 200,
+	long_window: int = 190,
 	warmup_days: int = 250,
 ) -> pd.DataFrame:
 	"""Download QQQ and TQQQ data with pre-warmed QQQ moving averages.
@@ -69,7 +69,7 @@ def download_qqq_and_tqqq_data(
 	short_window:
 		Short SMA window used to compute ``sma100``.
 	long_window:
-		Long SMA window used to compute ``sma200``.
+		Long SMA window used to compute ``sma190``.
 	warmup_days:
 		Initial calendar-day lookback before start_date. If insufficient to warm
 		``long_window`` before the first TQQQ date, the function automatically
@@ -78,7 +78,7 @@ def download_qqq_and_tqqq_data(
 	Returns
 	-------
 	pandas.DataFrame
-		Merged daily data with QQQ_Close, TQQQ_Close, sma100, sma200 columns.
+		Merged daily data with QQQ_Close, TQQQ_Close, sma100, sma190 columns.
 		SMAs calculated on full QQQ history.
 		Index starts from the user-requested start_date (or earliest TQQQ date if later).
 	"""
@@ -127,7 +127,7 @@ def download_qqq_and_tqqq_data(
 	
 	# Calculate SMAs on full QQQ history prior to trimming to executable dates.
 	data["sma100"] = data["QQQ_Close"].rolling(window=short_window, min_periods=short_window).mean()
-	data["sma200"] = data["QQQ_Close"].rolling(window=long_window, min_periods=long_window).mean()
+	data["sma190"] = data["QQQ_Close"].rolling(window=long_window, min_periods=long_window).mean()
 	
 	# Filter to dates where TQQQ exists (this is where trading can actually happen)
 	data = data.dropna(subset=["TQQQ_Open", "TQQQ_Close"])
@@ -209,3 +209,4 @@ def prepare_price_series(data: pd.DataFrame, price_column: str = "Adj Close") ->
 	prepared = prepared.loc[~prepared.index.duplicated(keep="first")]
 	prepared = prepared.dropna(subset=[price_column])
 	return prepared
+
