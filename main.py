@@ -50,10 +50,10 @@ def plot_results(backtest_data, price_column: str = "Adj Close") -> None:
     axes[1].grid(True, alpha=0.3)
 
     plt.tight_layout()
-    if "agg" in plt.get_backend().lower():
-        plt.close(fig)
-    else:
-        plt.show()
+    output_file = "backtest_results.png"
+    plt.savefig(output_file, dpi=100, bbox_inches="tight")
+    print(f"Plot saved to {output_file}")
+    plt.close(fig)
 
 
 def run_pipeline(args: argparse.Namespace) -> None:
