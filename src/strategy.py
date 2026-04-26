@@ -56,7 +56,7 @@ def generate_signals(
 	"""Generate buy/sell signals based on QQQ prices and SMAs.
 
 	Buy signal when QQQ price > SMA100(QQQ) AND QQQ price > SMA200(QQQ).
-	Sell signal when QQQ price < SMA200(QQQ) * 1.01 (with 1% buffer).
+	Sell signal when QQQ price < SMA200(QQQ).
 	Trades execute on TQQQ prices.
 	The target position is 1 when long and 0 when flat.
 	"""
@@ -70,7 +70,7 @@ def generate_signals(
 
 	price = frame[price_column]
 	buy_signal = (price > frame["sma100"]) & (price > frame["sma200"])
-	sell_signal = price < frame["sma200"] * 1.01
+	sell_signal = price < frame["sma200"]
 
 	raw_position = pd.Series(
 		np.select([buy_signal, sell_signal], [1, 0], default=np.nan),
