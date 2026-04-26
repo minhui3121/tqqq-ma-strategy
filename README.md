@@ -1,0 +1,1 @@
+# tqqq-ma-strategy
