@@ -100,7 +100,7 @@ def download_qqq_and_tqqq_data(
 	extended_start = start_date_dt - timedelta(days=warmup_days)
 
 	# Download TQQQ first to identify the earliest executable trade date.
-	tqqq = download_single_ticker("TQQQ", extended_start, end_date, price_column="Adj Close")
+	tqqq = download_single_ticker("TQQQ", extended_start, end_date, price_column="Close")
 	if tqqq.empty:
 		raise ValueError("No TQQQ data available.")
 
@@ -123,7 +123,7 @@ def download_qqq_and_tqqq_data(
 	if "Open" not in tqqq.columns:
 		raise ValueError("Missing required columns from TQQQ: ['Open']")
 	data["TQQQ_Open"] = tqqq["Open"]
-	data["TQQQ_Close"] = tqqq["Adj Close"]
+	data["TQQQ_Close"] = tqqq["Close"]
 	
 	# Calculate SMAs on full QQQ history prior to trimming to executable dates.
 	data["sma100"] = data["QQQ_Close"].rolling(window=short_window, min_periods=short_window).mean()

@@ -4,14 +4,14 @@ BACKTEST SUMMARY REPORT
 
 Period: 2005-01-01 to 2026-01-01
 Initial Capital: $10,000.00
-Final Value: $1,073,895.07
+Final Value: $1,075,670.60
 
 PERFORMANCE METRICS
 ----------------------------------------------------------------------
-Total Return: 10638.95%
-Annualized Return: 34.30%
+Total Return: 10656.71%
+Annualized Return: 34.31%
 Max Drawdown: -57.83%
-Sharpe Ratio: 0.87
+Sharpe Ratio: 0.88
 
 TRADE STATISTICS
 ----------------------------------------------------------------------
