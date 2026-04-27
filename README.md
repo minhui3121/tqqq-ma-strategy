@@ -61,3 +61,27 @@ python main.py --start 2005-01-01 --end 2026-01-01 --short-window 100 --long-win
 - `tests/` tests
 - `notebooks/` experiments
 - `data/` raw historical data (optional)
+
+## GitHub Actions email automation
+
+This repo includes a workflow at `.github/workflows/daily-email-report.yml`.
+
+It sends one email at 5:00 PM Montreal time on weekdays and also supports manual runs from the Actions tab.
+
+### Required GitHub repository secrets
+
+Go to **Settings -> Secrets and variables -> Actions -> New repository secret** and create:
+
+- `SMTP_HOST` (example: `smtp.gmail.com`)
+- `SMTP_PORT` (example: `587`)
+- `SMTP_USER` (your SMTP login email)
+- `SMTP_PASSWORD` (SMTP app password)
+- `REPORT_TO` (recipient email)
+
+### Enable and test
+
+1. Push your branch with `.github/workflows/daily-email-report.yml` to GitHub.
+2. Open the **Actions** tab and select **Daily Email Report**.
+3. Click **Run workflow** to test immediately.
+4. Check the run logs to confirm email delivery.
+
