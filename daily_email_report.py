@@ -59,7 +59,7 @@ def pct_distance(value: float, anchor: float) -> float:
     return ((value / anchor) - 1.0) * 100.0
 
 
-def build_report(args: argparse.Namespace) -> tuple[str, str]:
+def build_report(args: argparse.Namespace) -> tuple[str, str, str]:
     end_date = datetime.utcnow().date() + timedelta(days=1)
     start_date = end_date - timedelta(days=args.lookback_days)
 
@@ -94,8 +94,10 @@ def build_report(args: argparse.Namespace) -> tuple[str, str]:
     signal_date = pd.Timestamp(signals.index[-1]).strftime("%Y-%m-%d")
     generated_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
+    action = action_text(today_target, yesterday_target)
+
     subject = f"Daily QQQ/TQQQ Signal Report - {signal_date}"
-    body = (
+    text_body = (
         f"Daily Strategy Report\n"
         f"Generated: {generated_at}\n"
         f"Signal Date: {signal_date}\n\n"
@@ -108,12 +110,89 @@ def build_report(args: argparse.Namespace) -> tuple[str, str]:
         f"Positioning:\n"
         f"- Yesterday target: {position_text(yesterday_target)}\n"
         f"- Today target: {position_text(today_target)}\n"
-        f"- Action: {action_text(today_target, yesterday_target)}\n\n"
+        f"- Action: {action}\n\n"
         f"Execution model:\n"
         f"- Signals are based on QQQ close\n"
         f"- Trades execute at next trading day TQQQ open\n"
     )
-    return subject, body
+
+    action_bg = "#1f7a1f" if "BUY" in action or "HOLD" in action else "#8a1f1f"
+    html_body = f"""<!doctype html>
+<html>
+    <head>
+        <meta charset=\"utf-8\" />
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+        <style>
+            body, table, td {{ -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }}
+            .wrap {{ width: 100%; padding: 18px 10px; }}
+            .card {{ width: 100%; max-width: 560px; background: #ffffff; border: 1px solid #d8e0ee; border-radius: 12px; overflow: hidden; }}
+            .header {{ padding: 18px 20px; background: #1d2433; color: #ffffff; }}
+            .title {{ font-size: 22px; font-weight: 700; line-height: 1.2; }}
+            .subtitle {{ opacity: 0.9; margin-top: 5px; font-size: 13px; line-height: 1.35; }}
+            .section {{ padding: 18px 20px; }}
+            .section-title {{ font-size: 16px; font-weight: 700; margin-bottom: 10px; }}
+            .metrics td {{ padding: 11px 10px; border-bottom: 1px solid #e6ecf7; font-size: 14px; }}
+            .metrics tr:nth-child(odd) {{ background: #f8faff; }}
+            .metrics td:last-child {{ text-align: right; font-weight: 700; }}
+            .action {{ margin-top: 12px; padding: 12px 14px; border-radius: 9px; color: #ffffff; font-weight: 700; font-size: 14px; display: inline-block; }}
+            .footer {{ padding: 14px 20px 20px 20px; background: #f8faff; color: #4a5568; font-size: 12px; line-height: 1.55; }}
+            @media only screen and (max-width: 480px) {{
+                .wrap {{ padding: 10px 6px; }}
+                .header {{ padding: 16px 14px; }}
+                .section {{ padding: 14px; }}
+                .footer {{ padding: 12px 14px 16px 14px; }}
+                .title {{ font-size: 20px; }}
+                .subtitle {{ font-size: 12px; }}
+                .section-title {{ font-size: 15px; }}
+                .metrics td {{ font-size: 14px; padding: 10px 8px; }}
+            }}
+        </style>
+    </head>
+    <body style=\"margin:0;padding:0;background:#f3f6fb;font-family:Segoe UI,Arial,sans-serif;color:#1d2433;\">
+        <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" class=\"wrap\">
+            <tr>
+                <td align=\"center\">
+                    <table role=\"presentation\" cellspacing=\"0\" cellpadding=\"0\" class=\"card\">
+                        <tr>
+                            <td class=\"header\">
+                                <div class=\"title\">Daily Strategy Report</div>
+                                <div class=\"subtitle\">Signal Date: {signal_date}<br/>Generated: {generated_at}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class=\"section\">
+                                <div class=\"section-title\">Signal Asset (QQQ)</div>
+                                <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" class=\"metrics\" style=\"border-collapse:collapse;border:1px solid #d8e0ee;border-radius:8px;overflow:hidden;\">
+                                    <tr><td>QQQ Close</td><td>{qqq_close:.2f}</td></tr>
+                                    <tr><td>SMA100</td><td>{sma100:.2f}</td></tr>
+                                    <tr><td>SMA190</td><td>{sma190:.2f}</td></tr>
+                                    <tr><td>Distance to SMA100</td><td>{dist_100:+.2f}%</td></tr>
+                                    <tr><td>Distance to SMA190</td><td>{dist_190:+.2f}%</td></tr>
+                                </table>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class=\"section\" style=\"padding-top:0;\">
+                                <div class=\"section-title\">Positioning</div>
+                                <div style=\"font-size:14px;line-height:1.75;\">Yesterday target: <b>{position_text(yesterday_target)}</b><br/>Today target: <b>{position_text(today_target)}</b></div>
+                                <div class=\"action\" style=\"background:{action_bg};\">Action: {action}</div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class=\"footer\">
+                                <b>Execution model</b><br/>
+                                Signals are based on QQQ close. Trades execute at next trading day TQQQ open.
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+    </body>
+</html>
+"""
+
+    return subject, text_body, html_body
 
 
 def send_email(
@@ -124,13 +203,15 @@ def send_email(
     from_email: str,
     to_email: str,
     subject: str,
-    body: str,
+    text_body: str,
+    html_body: str,
 ) -> None:
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = from_email
     msg["To"] = to_email
-    msg.set_content(body)
+    msg.set_content(text_body)
+    msg.add_alternative(html_body, subtype="html")
 
     with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
         server.starttls()
@@ -156,12 +237,12 @@ def main() -> None:
 
     from_email = args.from_email or args.smtp_user or "noreply@example.com"
 
-    subject, body = build_report(args)
+    subject, text_body, html_body = build_report(args)
 
     if args.dry_run:
         print(subject)
         print("-" * 70)
-        print(body)
+        print(text_body)
         return
 
     send_email(
@@ -172,7 +253,8 @@ def main() -> None:
         from_email=from_email,
         to_email=args.to,
         subject=subject,
-        body=body,
+        text_body=text_body,
+        html_body=html_body,
     )
     print(f"Email sent to {args.to}")
 
