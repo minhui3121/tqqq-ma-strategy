@@ -44,7 +44,7 @@ jobs:
         run: echo "Montreal time is ${{ steps.gate.outputs.montreal_time }}"
 
       - name: Send daily email report
-        if: steps.gate.outputs.should_run == 'true'
+        if: github.event_name == 'workflow_dispatch' || steps.gate.outputs.should_run == 'true'
         env:
           SMTP_HOST: ${{ secrets.SMTP_HOST }}
           SMTP_PORT: ${{ secrets.SMTP_PORT }}
