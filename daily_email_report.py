@@ -25,7 +25,12 @@ from src.strategy import generate_signals
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Send daily strategy email report.")
-    parser.add_argument("--to", default=os.getenv("REPORT_TO"), help="Recipient email address. Defaults to REPORT_TO env var.")
+    parser.add_argument(
+        "--to",
+        action="append",
+        default=None,
+        help="Recipient email address. Repeat --to or use comma-separated values.",
+    )
     parser.add_argument("--from-email", default=None, help="From email address. Defaults to SMTP user.")
     parser.add_argument("--smtp-host", default=os.getenv("SMTP_HOST", "smtp.gmail.com"), help="SMTP host.")
     parser.add_argument("--smtp-port", type=int, default=int(os.getenv("SMTP_PORT", "587")), help="SMTP port.")
@@ -37,6 +42,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lookback-days", type=int, default=500, help="Calendar days of history to fetch.")
     parser.add_argument("--dry-run", action="store_true", help="Print email content without sending.")
     return parser.parse_args()
+
+
+def parse_recipients(to_args: list[str] | None, env_value: str | None) -> list[str]:
+    recipients: list[str] = []
+
+    for raw in (to_args or []):
+        parts = [p.strip() for p in raw.replace(";", ",").split(",")]
+        recipients.extend([p for p in parts if p])
+
+    if env_value:
+        parts = [p.strip() for p in env_value.replace(";", ",").split(",")]
+        recipients.extend([p for p in parts if p])
+
+    # Preserve order and remove duplicates.
+    return list(dict.fromkeys(recipients))
 
 
 def position_text(position: int) -> str:
@@ -201,7 +221,7 @@ def send_email(
     smtp_user: str,
     smtp_password: str,
     from_email: str,
-    to_email: str,
+    to_emails: list[str],
     subject: str,
     text_body: str,
     html_body: str,
@@ -209,20 +229,22 @@ def send_email(
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = from_email
-    msg["To"] = to_email
+    msg["To"] = ", ".join(to_emails)
     msg.set_content(text_body)
     msg.add_alternative(html_body, subtype="html")
 
     with smtplib.SMTP(smtp_host, smtp_port, timeout=30) as server:
         server.starttls()
         server.login(smtp_user, smtp_password)
-        server.send_message(msg)
+        server.send_message(msg, to_addrs=to_emails)
 
 
 def main() -> None:
     args = parse_args()
 
-    if not args.to:
+    recipients = parse_recipients(args.to, os.getenv("REPORT_TO"))
+
+    if not recipients:
         raise ValueError("Missing recipient: set --to or REPORT_TO.")
 
     if args.smtp_password_file and not args.smtp_password:
@@ -251,12 +273,12 @@ def main() -> None:
         smtp_user=args.smtp_user,
         smtp_password=args.smtp_password,
         from_email=from_email,
-        to_email=args.to,
+        to_emails=recipients,
         subject=subject,
         text_body=text_body,
         html_body=html_body,
     )
-    print(f"Email sent to {args.to}")
+    print(f"Email sent to: {', '.join(recipients)}")
 
 
 if __name__ == "__main__":
