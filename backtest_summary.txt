@@ -4,23 +4,23 @@ BACKTEST SUMMARY REPORT
 
 Period: 2005-01-01 to 2026-01-01
 Initial Capital: $10,000.00
-Final Value: $2,090,235.22
+Final Value: $2,276,729.16
 
 PERFORMANCE METRICS
 ----------------------------------------------------------------------
-Total Return: 20802.35%
-Annualized Return: 40.06%
-Max Drawdown: -55.31%
-Sharpe Ratio: 0.98
+Total Return: 22667.29%
+Annualized Return: 40.82%
+Max Drawdown: -48.14%
+Sharpe Ratio: 0.99
 
 TRADE STATISTICS
 ----------------------------------------------------------------------
-Total Trades: 30
+Total Trades: 29
 Winning Trades: 10
-Losing Trades: 20
-Win Rate: 33.3%
-Average Win: 107.40%
-Average Loss: -5.38%
-Profit Factor: 9.97
+Losing Trades: 18
+Win Rate: 34.5%
+Average Win: 106.37%
+Average Loss: -5.07%
+Profit Factor: 11.65
 
 ======================================================================

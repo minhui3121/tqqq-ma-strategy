@@ -199,7 +199,7 @@ def export_daily_portfolio_to_csv(
 			"tqqq_open": round(row.get("TQQQ_Open", 0), 2),
 			"tqqq_close": round(row.get("TQQQ_Close", 0), 2),
 			"trade_price": round(row.get("trade_price", 0), 4) if "trade_price" in row and not pd.isna(row["trade_price"]) else "",
-			"sma100": round(row.get("sma100", 0), 2) if "sma100" in row and not pd.isna(row["sma100"]) else "",
+			"sma80": round(row.get("sma80", 0), 2) if "sma80" in row and not pd.isna(row["sma80"]) else "",
 			"sma190": round(row.get("sma190", 0), 2) if "sma190" in row and not pd.isna(row["sma190"]) else "",
 			"position": int(row.get("position", 0)),
 			"shares": round(row.get("shares", 0), 4),
@@ -228,7 +228,7 @@ def export_signals_to_csv(
 		export_data.append({
 			"date": idx.strftime("%Y-%m-%d"),
 			"qqq_close": round(row.get("QQQ_Close", 0), 2),
-			"sma100": round(row.get("sma100", 0), 2) if "sma100" in row and not pd.isna(row["sma100"]) else "",
+			"sma80": round(row.get("sma80", 0), 2) if "sma80" in row and not pd.isna(row["sma80"]) else "",
 			"sma190": round(row.get("sma190", 0), 2) if "sma190" in row and not pd.isna(row["sma190"]) else "",
 			"buy_signal": int(row.get("buy_signal", 0)),
 			"sell_signal": int(row.get("sell_signal", 0)),

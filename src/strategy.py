@@ -12,14 +12,14 @@ import pandas as pd
 class StrategyConfig:
 	"""Configuration for the moving-average strategy."""
 
-	short_window: int = 100
+	short_window: int = 80
 	long_window: int = 190
 	price_column: str = "QQQ_Close"
 
 
 def add_indicators(
 	data: pd.DataFrame,
-	short_window: int = 100,
+	short_window: int = 80,
 	long_window: int = 190,
 	price_column: str = "QQQ_Close",
 ) -> pd.DataFrame:
@@ -39,8 +39,8 @@ def add_indicators(
 	frame = data.copy().sort_index()
 	
 	# Only recalculate SMAs if they don't already exist
-	if "sma100" not in frame.columns:
-		frame["sma100"] = frame[price_column].rolling(window=short_window, min_periods=short_window).mean()
+	if "sma80" not in frame.columns:
+		frame["sma80"] = frame[price_column].rolling(window=short_window, min_periods=short_window).mean()
 	if "sma190" not in frame.columns:
 		frame["sma190"] = frame[price_column].rolling(window=long_window, min_periods=long_window).mean()
 	
@@ -49,13 +49,13 @@ def add_indicators(
 
 def generate_signals(
 	data: pd.DataFrame,
-	short_window: int = 100,
+	short_window: int = 80,
 	long_window: int = 190,
 	price_column: str = "QQQ_Close",
 ) -> pd.DataFrame:
 	"""Generate buy/sell signals based on QQQ prices and SMAs.
 
-	Buy signal when QQQ price > SMA100(QQQ) AND QQQ price > SMA190(QQQ).
+	Buy signal when QQQ price > SMA80(QQQ) AND QQQ price > SMA190(QQQ).
 	Sell signal when QQQ price < SMA190(QQQ).
 	Trades execute on TQQQ prices.
 	The target position is 1 when long and 0 when flat.
@@ -69,7 +69,7 @@ def generate_signals(
 	)
 
 	price = frame[price_column]
-	buy_signal = (price > frame["sma100"]) & (price > frame["sma190"])
+	buy_signal = (price > frame["sma80"]) & (price > frame["sma190"])
 	sell_signal = price < frame["sma190"]
 
 	raw_position = pd.Series(

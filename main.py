@@ -28,7 +28,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Backtest a TQQQ SMA strategy.")
     parser.add_argument("--start", default="2005-01-01", help="Start date in YYYY-MM-DD format.")
     parser.add_argument("--end", default=None, help="End date in YYYY-MM-DD format.")
-    parser.add_argument("--short-window", type=int, default=100, help="Short SMA window.")
+    parser.add_argument("--short-window", type=int, default=80, help="Short SMA window.")
     parser.add_argument("--long-window", type=int, default=190, help="Long SMA window.")
     parser.add_argument(
         "--initial-capital",
@@ -45,7 +45,7 @@ def plot_results(backtest_data, price_column: str = "QQQ_Close") -> None:
     fig, axes = plt.subplots(2, 1, figsize=(14, 10), sharex=True)
 
     axes[0].plot(backtest_data.index, backtest_data[price_column], label="QQQ Close", linewidth=1.4)
-    axes[0].plot(backtest_data.index, backtest_data["sma100"], label="QQQ SMA 100", linewidth=1.2)
+    axes[0].plot(backtest_data.index, backtest_data["sma80"], label="QQQ SMA 80", linewidth=1.2)
     axes[0].plot(backtest_data.index, backtest_data["sma190"], label="QQQ SMA 190", linewidth=1.2)
     axes[0].set_title("QQQ Price with Moving Averages (Signal Generation)")
     axes[0].set_ylabel("QQQ Price")

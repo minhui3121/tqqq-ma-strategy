@@ -6,13 +6,13 @@ Python backtesting framework for a leveraged ETF trend-following strategy on TQQ
 
 - Signal asset: QQQ (uses raw `Close` price)
 - Execution asset: TQQQ (uses raw `Open` for fills, raw `Close` for end-of-day marking)
-- Short SMA: 100 days
+- Short SMA: 80 days
 - Long SMA: 190 days
 
 ### Entry logic
 
 - Buy/hold long (`target_position = 1`) when:
-  - `QQQ_Close > SMA100`
+  - `QQQ_Close > SMA80`
   - and `QQQ_Close > SMA190`
 
 ### Exit logic
@@ -43,7 +43,7 @@ This avoids look-ahead bias from same-day close-based signals and same-day execu
 ## Run
 
 ```bash
-python main.py --start 2005-01-01 --end 2026-01-01 --short-window 100 --long-window 190
+python main.py --start 2005-01-01 --end 2026-01-01 --short-window 80 --long-window 190
 ```
 
 ## Output files

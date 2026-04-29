@@ -1,7 +1,7 @@
 """Send a daily QQQ/TQQQ signal report email.
 
 This script computes the latest strategy state and emails a summary with:
-- Latest QQQ close, SMA100, SMA190
+- Latest QQQ close, SMA80, SMA190
 - Distance from each SMA
 - Target position signal
 - Action guidance for next market open
@@ -37,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--smtp-user", default=os.getenv("SMTP_USER"), help="SMTP username/login.")
     parser.add_argument("--smtp-password", default=os.getenv("SMTP_PASSWORD"), help="SMTP password/app password.")
     parser.add_argument("--smtp-password-file", default=None, help="Path to a file containing SMTP password.")
-    parser.add_argument("--short-window", type=int, default=100, help="Short SMA window.")
+    parser.add_argument("--short-window", type=int, default=80, help="Short SMA window.")
     parser.add_argument("--long-window", type=int, default=190, help="Long SMA window.")
     parser.add_argument("--lookback-days", type=int, default=500, help="Calendar days of history to fetch.")
     parser.add_argument("--dry-run", action="store_true", help="Print email content without sending.")
@@ -102,13 +102,13 @@ def build_report(args: argparse.Namespace) -> tuple[str, str, str]:
     prev = signals.iloc[-2] if len(signals) > 1 else latest
 
     qqq_close = float(latest["QQQ_Close"])
-    sma100 = float(latest["sma100"])
+    sma80 = float(latest["sma80"])
     sma190 = float(latest["sma190"])
 
     today_target = int(latest["target_position"])
     yesterday_target = int(prev["target_position"])
 
-    dist_100 = pct_distance(qqq_close, sma100)
+    dist_80 = pct_distance(qqq_close, sma80)
     dist_190 = pct_distance(qqq_close, sma190)
 
     signal_date = pd.Timestamp(signals.index[-1]).strftime("%Y-%m-%d")
@@ -123,9 +123,9 @@ def build_report(args: argparse.Namespace) -> tuple[str, str, str]:
         f"Signal Date: {signal_date}\n\n"
         f"Signal Asset (QQQ):\n"
         f"- QQQ Close: {qqq_close:.2f}\n"
-        f"- SMA100: {sma100:.2f}\n"
+        f"- SMA80: {sma80:.2f}\n"
         f"- SMA190: {sma190:.2f}\n"
-        f"- Distance to SMA100: {dist_100:+.2f}%\n"
+        f"- Distance to SMA80: {dist_80:+.2f}%\n"
         f"- Distance to SMA190: {dist_190:+.2f}%\n\n"
         f"Positioning:\n"
         f"- Yesterday target: {position_text(yesterday_target)}\n"
@@ -184,9 +184,9 @@ def build_report(args: argparse.Namespace) -> tuple[str, str, str]:
                                 <div class=\"section-title\">Signal Asset (QQQ)</div>
                                 <table role=\"presentation\" width=\"100%\" cellspacing=\"0\" cellpadding=\"0\" class=\"metrics\" style=\"border-collapse:collapse;border:1px solid #d8e0ee;border-radius:8px;overflow:hidden;\">
                                     <tr><td>QQQ Close</td><td>{qqq_close:.2f}</td></tr>
-                                    <tr><td>SMA100</td><td>{sma100:.2f}</td></tr>
+                                    <tr><td>SMA80</td><td>{sma80:.2f}</td></tr>
                                     <tr><td>SMA190</td><td>{sma190:.2f}</td></tr>
-                                    <tr><td>Distance to SMA100</td><td>{dist_100:+.2f}%</td></tr>
+                                    <tr><td>Distance to SMA80</td><td>{dist_80:+.2f}%</td></tr>
                                     <tr><td>Distance to SMA190</td><td>{dist_190:+.2f}%</td></tr>
                                 </table>
                             </td>
