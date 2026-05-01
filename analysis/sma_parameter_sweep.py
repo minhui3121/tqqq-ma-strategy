@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import math
 import sys
 from pathlib import Path
@@ -27,6 +28,18 @@ RESULTS_CSV = OUTPUT_DIR / "sma_parameter_sweep_results.csv"
 SUMMARY_MD = OUTPUT_DIR / "sma_parameter_sweep_summary.md"
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Run an SMA parameter sweep for the TQQQ strategy.")
+    parser.add_argument("--start", default=PERIOD_START, help="Start date in YYYY-MM-DD format.")
+    parser.add_argument("--end", default=PERIOD_END, help="End date in YYYY-MM-DD format.")
+    parser.add_argument(
+        "--synthetic-tqqq",
+        action="store_true",
+        help="Use synthetic leveraged TQQQ prices before real TQQQ history begins.",
+    )
+    return parser.parse_args()
+
+
 def evaluate(data: pd.DataFrame, short_window: int, long_window: int) -> dict[str, float | int]:
     signal = generate_signals(data, short_window=short_window, long_window=long_window)
     result = run_backtest(signal)
@@ -45,7 +58,14 @@ def evaluate(data: pd.DataFrame, short_window: int, long_window: int) -> dict[st
 
 
 def main() -> None:
-    print(f"Downloading data for {PERIOD_START} to {PERIOD_END}...")
+    args = parse_args()
+    period_start = args.start
+    period_end = args.end
+
+    print(f"Downloading data for {period_start} to {period_end}...")
+    if args.synthetic_tqqq:
+        print("Synthetic pre-2010 TQQQ mode enabled.")
+
     # Download must be performed for each candidate pair so both SMAs are
     # warmed on the same pre-start history that `main.py` uses.
     candidates: list[tuple[int, int]] = []
@@ -60,7 +80,13 @@ def main() -> None:
     for short_w, long_w in candidates:
         try:
             print(f"Evaluating short_window={short_w}, long_window={long_w}...")
-            base = download_qqq_and_tqqq_data(PERIOD_START, PERIOD_END, short_window=short_w, long_window=long_w)
+            base = download_qqq_and_tqqq_data(
+                period_start,
+                period_end,
+                short_window=short_w,
+                long_window=long_w,
+                use_synthetic_tqqq=args.synthetic_tqqq,
+            )
             records.append(evaluate(base, short_w, long_w))
         except Exception as exc:  # pragma: no cover - diagnostic
             print(f"Combo failed short={short_w} long={long_w}: {exc}")
@@ -74,7 +100,8 @@ def main() -> None:
     summary = [
         "# SMA Full-Period Sweep",
         "",
-        f"Period: {PERIOD_START} to {PERIOD_END}",
+        f"Period: {period_start} to {period_end}",
+        f"Synthetic pre-2010 TQQQ mode: {'enabled' if args.synthetic_tqqq else 'disabled'}",
         "",
         "## Best Candidate (full period)",
         "",

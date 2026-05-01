@@ -36,6 +36,11 @@ def parse_args() -> argparse.Namespace:
         default=10_000.0,
         help="Starting portfolio value.",
     )
+    parser.add_argument(
+        "--synthetic-tqqq",
+        action="store_true",
+        help="Use a synthetic leveraged TQQQ series before real TQQQ history begins.",
+    )
     return parser.parse_args()
 
 
@@ -75,7 +80,11 @@ def run_pipeline(args: argparse.Namespace) -> None:
         end_date=args.end or None,
         short_window=args.short_window,
         long_window=args.long_window,
+        use_synthetic_tqqq=args.synthetic_tqqq,
     )
+
+    if args.synthetic_tqqq:
+        print("Using synthetic pre-2010 TQQQ backfill mode.")
     
     signal_data = generate_signals(
         merged_data,
