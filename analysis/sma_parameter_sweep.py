@@ -19,8 +19,8 @@ from src.strategy import generate_signals
 PERIOD_START = "2005-01-01"
 PERIOD_END = "2026-01-01"
 
-SHORT_VALUES = list(range(20, 151, 10))
-LONG_VALUES = list(range(60, 301, 10))
+SHORT_VALUES = list(range(20, 151, 1))
+LONG_VALUES = list(range(60, 301, 1))
 
 OUTPUT_DIR = Path(__file__).resolve().parent
 RESULTS_CSV = OUTPUT_DIR / "sma_parameter_sweep_results.csv"
