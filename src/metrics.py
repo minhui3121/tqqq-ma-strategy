@@ -13,8 +13,16 @@ def calculate_performance_metrics(
 	initial_capital: float,
 	periods_per_year: int = 252,
 	portfolio_column: str = "portfolio_value",
+	total_invested: float | None = None,
 ) -> dict[str, float]:
-	"""Compute key performance statistics from a portfolio value series."""
+	"""Compute key performance statistics from a portfolio value series.
+	
+	Parameters
+	----------
+	total_invested:
+		Total amount invested (initial + all deposits). If provided, metrics
+		will include effective return on total invested capital.
+		"""
 
 	if portfolio_column not in backtest_data.columns:
 		raise ValueError(f"Expected portfolio column '{portfolio_column}' was not found.")
@@ -27,6 +35,7 @@ def calculate_performance_metrics(
 	total_return = ending_value / initial_capital - 1.0
 
 	periods = max(len(portfolio) - 1, 1)
+	# By default annualize relative to initial capital
 	annualized_return = (ending_value / initial_capital) ** (periods_per_year / periods) - 1.0
 
 	rolling_max = portfolio.cummax()
@@ -39,12 +48,23 @@ def calculate_performance_metrics(
 	else:
 		sharpe_ratio = float((daily_returns.mean() / daily_returns.std(ddof=0)) * math.sqrt(periods_per_year))
 
-	return {
+	metrics = {
 		"total_return": float(total_return),
 		"annualized_return": float(annualized_return),
 		"max_drawdown": max_drawdown,
 		"sharpe_ratio": sharpe_ratio,
 	}
+
+	if total_invested is not None and total_invested > 0:
+		effective_return = ending_value / total_invested - 1.0
+		# When using continuous investment, annualized return should be
+		# based on effective return (ending / total_invested)
+		effective_annualized = (ending_value / total_invested) ** (periods_per_year / periods) - 1.0
+		metrics["total_invested"] = float(total_invested)
+		metrics["effective_return"] = float(effective_return)
+		metrics["annualized_return"] = float(effective_annualized)
+
+	return metrics
 
 
 def format_metrics(metrics: dict[str, float]) -> str:
@@ -177,6 +197,7 @@ def export_daily_portfolio_to_csv(
 	backtest_data: pd.DataFrame,
 	initial_capital: float,
 	output_file: str = "portfolio_daily.csv",
+	total_invested: float | None = None,
 ) -> None:
 	"""Export full daily portfolio snapshot to CSV."""
 
@@ -193,7 +214,10 @@ def export_daily_portfolio_to_csv(
 			if prev_val > 0:
 				daily_return = (current_val / prev_val) - 1.0
 
-		export_data.append({
+			# Choose basis for percent return: effective (total_invested) when provided,
+			# otherwise use initial capital for legacy behavior.
+			basis = total_invested if (total_invested is not None and total_invested > 0) else initial_capital
+			export_data.append({
 			"date": idx.strftime("%Y-%m-%d"),
 			"qqq_close": round(row.get("QQQ_Close", 0), 2),
 			"tqqq_open": round(row.get("TQQQ_Open", 0), 2),
@@ -204,8 +228,10 @@ def export_daily_portfolio_to_csv(
 			"position": int(row.get("position", 0)),
 			"shares": round(row.get("shares", 0), 4),
 			"cash": round(row.get("cash", 0), 2),
+			"deposit": round(row.get("deposit", 0), 2),
+			"cumulative_invested": round(row.get("cumulative_invested", 0), 2),
 			"portfolio_value": round(row["portfolio_value"], 2),
-			"portfolio_return_pct": f"{((current_val / initial_capital) - 1) * 100:.2f}%",
+			"portfolio_return_pct": f"{((current_val / basis) - 1) * 100:.2f}%",
 			"daily_return_pct": f"{daily_return*100:.2f}%" if daily_return != 0 else "0.00%",
 			"drawdown_pct": f"{drawdown*100:.2f}%",
 			"trade_executed": int(row.get("trade_executed", 0)),

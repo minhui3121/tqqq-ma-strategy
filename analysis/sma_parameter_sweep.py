@@ -12,7 +12,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.backtest import run_backtest
-from src.data_loader import download_qqq_and_tqqq_data
+from src.data_loader import download_qqq_and_tqqq_data, generate_annual_deposits
 from src.metrics import calculate_performance_metrics
 from src.strategy import generate_signals
 
@@ -37,15 +37,25 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Use synthetic leveraged TQQQ prices before real TQQQ history begins.",
     )
+    parser.add_argument(
+        "--continuous-investment",
+        action="store_true",
+        help="Add $10,000 to portfolio every January 1st during the backtest period.",
+    )
     return parser.parse_args()
 
 
-def evaluate(data: pd.DataFrame, short_window: int, long_window: int) -> dict[str, float | int]:
+def evaluate(data: pd.DataFrame, short_window: int, long_window: int, deposits: dict | None = None) -> dict[str, float | int]:
+    """Evaluate a single SMA parameter combination."""
     signal = generate_signals(data, short_window=short_window, long_window=long_window)
-    result = run_backtest(signal)
-    metrics = calculate_performance_metrics(result.data, initial_capital=result.initial_capital)
+    result = run_backtest(signal, deposits=deposits)
+    metrics = calculate_performance_metrics(
+        result.data,
+        initial_capital=result.initial_capital,
+        total_invested=result.data["cumulative_invested"].iloc[-1] if deposits else None,
+    )
 
-    return {
+    return_dict = {
         "short": short_window,
         "long": long_window,
         "total_return": metrics["total_return"],
@@ -56,6 +66,12 @@ def evaluate(data: pd.DataFrame, short_window: int, long_window: int) -> dict[st
         "final_value": float(result.data["portfolio_value"].iloc[-1]),
     }
 
+    if "total_invested" in metrics:
+        return_dict["total_invested"] = metrics["total_invested"]
+        return_dict["effective_return"] = metrics["effective_return"]
+
+    return return_dict
+
 
 def main() -> None:
     args = parse_args()
@@ -65,6 +81,8 @@ def main() -> None:
     print(f"Downloading data for {period_start} to {period_end}...")
     if args.synthetic_tqqq:
         print("Synthetic pre-2010 TQQQ mode enabled.")
+    if args.continuous_investment:
+        print("Continuous investment mode enabled.")
 
     # Download must be performed for each candidate pair so both SMAs are
     # warmed on the same pre-start history that `main.py` uses.
@@ -74,6 +92,18 @@ def main() -> None:
             if long_w <= short_w + 20:
                 continue
             candidates.append((int(short_w), int(long_w)))
+
+    # Load data once to generate deposits if needed
+    sample_data = download_qqq_and_tqqq_data(
+        period_start,
+        period_end,
+        short_window=SHORT_VALUES[0],
+        long_window=LONG_VALUES[-1],
+        use_synthetic_tqqq=args.synthetic_tqqq,
+    )
+    deposits = None
+    if args.continuous_investment:
+        deposits = generate_annual_deposits(sample_data, deposit_amount=10_000.0)
 
     records: list[dict[str, float | int]] = []
 
@@ -87,7 +117,7 @@ def main() -> None:
                 long_window=long_w,
                 use_synthetic_tqqq=args.synthetic_tqqq,
             )
-            records.append(evaluate(base, short_w, long_w))
+            records.append(evaluate(base, short_w, long_w, deposits=deposits))
         except Exception as exc:  # pragma: no cover - diagnostic
             print(f"Combo failed short={short_w} long={long_w}: {exc}")
 
@@ -102,6 +132,7 @@ def main() -> None:
         "",
         f"Period: {period_start} to {period_end}",
         f"Synthetic pre-2010 TQQQ mode: {'enabled' if args.synthetic_tqqq else 'disabled'}",
+        f"Continuous investment mode: {'enabled' if args.continuous_investment else 'disabled'}",
         "",
         "## Best Candidate (full period)",
         "",

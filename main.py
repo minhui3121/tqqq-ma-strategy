@@ -7,7 +7,7 @@ import argparse
 import matplotlib.pyplot as plt
 
 from src.backtest import run_backtest
-from src.data_loader import download_qqq_and_tqqq_data
+from src.data_loader import download_qqq_and_tqqq_data, generate_annual_deposits
 from src.metrics import (
     calculate_performance_metrics,
     export_backtest_summary,
@@ -40,6 +40,11 @@ def parse_args() -> argparse.Namespace:
         "--synthetic-tqqq",
         action="store_true",
         help="Use a synthetic leveraged TQQQ series before real TQQQ history begins.",
+    )
+    parser.add_argument(
+        "--continuous-investment",
+        action="store_true",
+        help="Add $10,000 to portfolio every January 1st during the backtest period.",
     )
     return parser.parse_args()
 
@@ -86,6 +91,11 @@ def run_pipeline(args: argparse.Namespace) -> None:
     if args.synthetic_tqqq:
         print("Using synthetic pre-2010 TQQQ backfill mode.")
     
+    deposits = None
+    if args.continuous_investment:
+        deposits = generate_annual_deposits(merged_data, deposit_amount=10_000.0)
+        print(f"Continuous investment mode: Adding $10,000 on {len(deposits)} dates.")
+    
     signal_data = generate_signals(
         merged_data,
         short_window=args.short_window,
@@ -94,11 +104,13 @@ def run_pipeline(args: argparse.Namespace) -> None:
     backtest_result = run_backtest(
         signal_data,
         initial_capital=args.initial_capital,
+        deposits=deposits,
     )
 
     metrics = calculate_performance_metrics(
         backtest_result.data,
         initial_capital=backtest_result.initial_capital,
+        total_invested=backtest_result.data["cumulative_invested"].iloc[-1] if args.continuous_investment else None,
     )
 
     print("\n" + "="*70)
@@ -111,6 +123,9 @@ def run_pipeline(args: argparse.Namespace) -> None:
     print("Performance Metrics")
     print("-" * 70)
     print(format_metrics(metrics))
+    if "total_invested" in metrics:
+        print(f"Total Invested: ${metrics['total_invested']:,.2f}")
+        print(f"Effective Return: {metrics['effective_return']:.2%}")
     print()
 
     trades = extract_trades(backtest_result.data)
@@ -151,7 +166,12 @@ def run_pipeline(args: argparse.Namespace) -> None:
     print("\nEXPORTING DETAILED RESULTS")
     print("="*70)
     export_trades_to_csv(trades, args.initial_capital, output_file="trades.csv")
-    export_daily_portfolio_to_csv(backtest_result.data, args.initial_capital, output_file="portfolio_daily.csv")
+    export_daily_portfolio_to_csv(
+        backtest_result.data,
+        args.initial_capital,
+        output_file="portfolio_daily.csv",
+        total_invested=backtest_result.data["cumulative_invested"].iloc[-1] if args.continuous_investment else None,
+    )
     export_signals_to_csv(backtest_result.data, output_file="signals.csv")
     export_backtest_summary(
         metrics,

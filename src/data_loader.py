@@ -288,3 +288,48 @@ def prepare_price_series(data: pd.DataFrame, price_column: str = "Close") -> pd.
 	return prepared
 
 
+def generate_annual_deposits(
+	data: pd.DataFrame,
+	deposit_amount: float = 10_000.0,
+	skip_first_year: bool = True,
+) -> dict[pd.Timestamp, float]:
+	"""Generate annual deposit dates (Jan 1) for continuous investment backtests.
+
+	Parameters
+	----------
+	data:
+		Backtest data frame to extract date range from.
+	deposit_amount:
+		Amount to deposit on each date.
+	skip_first_year:
+		If True, skip Jan 1 of the first year (since initial capital covers it).
+
+	Returns
+	-------
+	dict
+		Mapping of deposit dates to amounts.
+	"""
+
+	if data.empty:
+		return {}
+
+	start_year = data.index.min().year
+	end_year = data.index.max().year
+	deposits = {}
+
+	for year in range(start_year, end_year + 1):
+		if skip_first_year and year == start_year:
+			continue
+
+		jan1 = pd.Timestamp(f"{year}-01-01")
+		if jan1 in data.index:
+			deposits[jan1] = deposit_amount
+		else:
+			candidates = data.index[data.index.year == year]
+			if not candidates.empty:
+				first_date = candidates.min()
+				deposits[first_date] = deposit_amount
+
+	return deposits
+
+
