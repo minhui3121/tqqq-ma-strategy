@@ -33,11 +33,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--start", default=PERIOD_START, help="Start date in YYYY-MM-DD format.")
     parser.add_argument("--end", default=PERIOD_END, help="End date in YYYY-MM-DD format.")
     parser.add_argument(
-        "--synthetic-tqqq",
-        action="store_true",
-        help="Use synthetic leveraged TQQQ prices before real TQQQ history begins.",
-    )
-    parser.add_argument(
         "--continuous-investment",
         action="store_true",
         help="Add $10,000 to portfolio every January 1st during the backtest period.",
@@ -79,8 +74,6 @@ def main() -> None:
     period_end = args.end
 
     print(f"Downloading data for {period_start} to {period_end}...")
-    if args.synthetic_tqqq:
-        print("Synthetic pre-2010 TQQQ mode enabled.")
     if args.continuous_investment:
         print("Continuous investment mode enabled.")
 
@@ -99,7 +92,6 @@ def main() -> None:
         period_end,
         short_window=SHORT_VALUES[0],
         long_window=LONG_VALUES[-1],
-        use_synthetic_tqqq=args.synthetic_tqqq,
     )
     deposits = None
     if args.continuous_investment:
@@ -115,7 +107,6 @@ def main() -> None:
                 period_end,
                 short_window=short_w,
                 long_window=long_w,
-                use_synthetic_tqqq=args.synthetic_tqqq,
             )
             records.append(evaluate(base, short_w, long_w, deposits=deposits))
         except Exception as exc:  # pragma: no cover - diagnostic
@@ -131,7 +122,6 @@ def main() -> None:
         "# SMA Full-Period Sweep",
         "",
         f"Period: {period_start} to {period_end}",
-        f"Synthetic pre-2010 TQQQ mode: {'enabled' if args.synthetic_tqqq else 'disabled'}",
         f"Continuous investment mode: {'enabled' if args.continuous_investment else 'disabled'}",
         "",
         "## Best Candidate (full period)",

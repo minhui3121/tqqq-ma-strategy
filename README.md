@@ -33,7 +33,7 @@ This avoids look-ahead bias from same-day close-based signals and same-day execu
 - TQQQ `Open` is used only for next-day execution fills.
 - The loader fetches additional QQQ history automatically to warm up SMA windows.
 - If requested start date is before TQQQ inception (2010-02-11), backtest starts at TQQQ's first available date in the default real-only mode.
-- Use `--synthetic-tqqq` to backfill pre-2010 execution prices with a leveraged QQQ-based proxy and run the strategy over earlier history.
+- The repo uses pre-saved historical CSVs in `data/` for backtests and analysis.
 
 ## Assumptions
 
@@ -49,9 +49,7 @@ python main.py --start 2005-01-01 --end 2026-01-01 --short-window 80 --long-wind
 
 Historical synthetic mode:
 
-```bash
-python main.py --start 2005-01-01 --end 2026-01-01 --short-window 80 --long-window 190 --synthetic-tqqq
-```
+No longer needed: the repo ships with pre-synthesized TQQQ data, so the strategy runs without a synthetic runtime flag.
 
 ## Output files
 

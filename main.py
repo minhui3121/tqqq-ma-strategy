@@ -37,11 +37,6 @@ def parse_args() -> argparse.Namespace:
         help="Starting portfolio value.",
     )
     parser.add_argument(
-        "--synthetic-tqqq",
-        action="store_true",
-        help="Use a synthetic leveraged TQQQ series before real TQQQ history begins.",
-    )
-    parser.add_argument(
         "--continuous-investment",
         action="store_true",
         help="Add $10,000 to portfolio every January 1st during the backtest period.",
@@ -85,11 +80,7 @@ def run_pipeline(args: argparse.Namespace) -> None:
         end_date=args.end or None,
         short_window=args.short_window,
         long_window=args.long_window,
-        use_synthetic_tqqq=args.synthetic_tqqq,
     )
-
-    if args.synthetic_tqqq:
-        print("Using synthetic pre-2010 TQQQ backfill mode.")
     
     deposits = None
     if args.continuous_investment:
