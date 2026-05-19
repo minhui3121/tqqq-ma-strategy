@@ -9,6 +9,26 @@ import pandas as pd
 import yfinance as yf
 
 
+def _normalize_and_slice_prices(
+	data: pd.DataFrame,
+	start_date: str | datetime,
+	end_date: str | datetime | None,
+) -> pd.DataFrame:
+	"""Sort ascending and slice to the requested inclusive date range."""
+
+	cleaned = data.sort_index(ascending=True).copy()
+	cleaned = cleaned.loc[~cleaned.index.duplicated(keep="first")]
+
+	start_ts = pd.to_datetime(start_date)
+	if end_date is not None:
+		end_ts = pd.to_datetime(end_date)
+		cleaned = cleaned.loc[(cleaned.index >= start_ts) & (cleaned.index <= end_ts)]
+	else:
+		cleaned = cleaned.loc[cleaned.index >= start_ts]
+
+	return cleaned
+
+
 def download_single_ticker(
 	ticker: str,
 	start_date: str | datetime,
@@ -28,11 +48,7 @@ def download_single_ticker(
 		if price_column not in df.columns:
 			raise ValueError(f"Missing required columns from {local_path}: {price_column}")
 
-		# The stored CSVs are reverse-chronological (newest first). Normalize
-		# to ascending chronological order so downstream code (pct_change,
-		# rolling windows) behaves correctly.
-		cleaned = df.sort_index(ascending=True).copy()
-		cleaned = cleaned.loc[~cleaned.index.duplicated(keep="first")]
+		cleaned = _normalize_and_slice_prices(df, start_date, end_date)
 		cleaned = cleaned.dropna(subset=[price_column])
 		return cleaned
 
@@ -57,8 +73,7 @@ def download_single_ticker(
 	if missing_columns:
 		raise ValueError(f"Missing required columns from {ticker}: {sorted(missing_columns)}")
 
-	cleaned = data.sort_index().copy()
-	cleaned = cleaned.loc[~cleaned.index.duplicated(keep="first")]
+	cleaned = _normalize_and_slice_prices(data, start_date, end_date)
 	cleaned = cleaned.dropna(subset=[price_column])
 
 	return cleaned
@@ -119,7 +134,7 @@ def download_qqq_and_tqqq_data(
 	
 	extended_start = start_date_dt - timedelta(days=warmup_days)
 
-	# Download TQQQ first to identify the earliest executable trade date.
+	# Load TQQQ first to identify the earliest executable trade date.
 	tqqq = download_single_ticker("TQQQ", extended_start, end_date, price_column="Close")
 	if tqqq.empty:
 		raise ValueError("No TQQQ data available.")
