@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 import yfinance as yf
+import os
 
 
 def _build_synthetic_tqqq_series(qqq: pd.DataFrame, leverage: float = 3.0) -> pd.DataFrame:
@@ -51,6 +52,26 @@ def download_single_ticker(
 ) -> pd.DataFrame:
 	"""Download daily historical data for a single ticker."""
 
+	# Prefer local CSVs if available. This keeps downstream scripts offline and
+	# consistent with previously prepared data.
+	local_path = os.path.join("data", f"{ticker.lower()}_data.csv")
+	if os.path.exists(local_path):
+		df = pd.read_csv(local_path, parse_dates=["Date"]) 
+		if "Date" in df.columns:
+			df = df.set_index("Date")
+
+		if price_column not in df.columns:
+			raise ValueError(f"Missing required columns from {local_path}: {price_column}")
+
+		# The stored CSVs are reverse-chronological (newest first). Normalize
+		# to ascending chronological order so downstream code (pct_change,
+		# rolling windows) behaves correctly.
+		cleaned = df.sort_index(ascending=True).copy()
+		cleaned = cleaned.loc[~cleaned.index.duplicated(keep="first")]
+		cleaned = cleaned.dropna(subset=[price_column])
+		return cleaned
+
+	# Fall back to yfinance if no local CSV found
 	data = yf.download(
 		ticker,
 		start=start_date,
