@@ -18,8 +18,8 @@ from datetime import datetime, timedelta
 from email.message import EmailMessage
 
 import pandas as pd
+import yfinance as yf
 
-from src.data_loader import download_qqq_and_tqqq_data
 from src.strategy import generate_signals
 
 
@@ -79,16 +79,52 @@ def pct_distance(value: float, anchor: float) -> float:
     return ((value / anchor) - 1.0) * 100.0
 
 
+def _flatten_columns(data: pd.DataFrame) -> pd.DataFrame:
+    """Flatten yfinance columns if it returns a MultiIndex."""
+
+    if isinstance(data.columns, pd.MultiIndex):
+        data.columns = [col[0] if col[1] == "" else col[0] for col in data.columns]
+    return data
+
+
+def download_yahoo_ticker(ticker: str, start_date: str, end_date: str) -> pd.DataFrame:
+    """Download daily ticker data directly from Yahoo Finance.
+
+    The daily email report intentionally bypasses the repo's CSV-backed loader so
+    it always reflects the latest available market data.
+    """
+
+    data = yf.download(
+        ticker,
+        start=start_date,
+        end=end_date,
+        interval="1d",
+        auto_adjust=False,
+        progress=False,
+    )
+
+    if data.empty:
+        raise ValueError(f"No Yahoo Finance data returned for {ticker}.")
+
+    data = _flatten_columns(data)
+    data = data.sort_index(ascending=True).copy()
+    data = data.loc[~data.index.duplicated(keep="first")]
+    data.index = pd.to_datetime(data.index)
+    return data
+
+
 def build_report(args: argparse.Namespace) -> tuple[str, str, str]:
     end_date = datetime.utcnow().date() + timedelta(days=1)
     start_date = end_date - timedelta(days=args.lookback_days)
 
-    merged = download_qqq_and_tqqq_data(
-        start_date=str(start_date),
-        end_date=str(end_date),
-        short_window=args.short_window,
-        long_window=args.long_window,
+    qqq = download_yahoo_ticker("QQQ", str(start_date), str(end_date))
+    tqqq = download_yahoo_ticker("TQQQ", str(start_date), str(end_date))
+
+    merged = qqq[["Close"]].rename(columns={"Close": "QQQ_Close"}).join(
+        tqqq[["Open", "Close"]].rename(columns={"Open": "TQQQ_Open", "Close": "TQQQ_Close"}),
+        how="inner",
     )
+    merged = merged.dropna(subset=["QQQ_Close", "TQQQ_Open", "TQQQ_Close"])
     signals = generate_signals(
         merged,
         short_window=args.short_window,
