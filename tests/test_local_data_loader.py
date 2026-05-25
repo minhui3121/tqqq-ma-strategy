@@ -12,7 +12,7 @@ def test_local_csv_loader_returns_chronological_data() -> None:
 	assert qqq.index.max() == pd.Timestamp('2010-02-12')
 
 
-def test_real_mode_starts_at_actual_tqqq_inception() -> None:
+def test_backfilled_tqqq_starts_with_requested_qqq_range() -> None:
 	data = download_qqq_and_tqqq_data(
 		start_date='2005-01-01',
 		end_date='2010-02-12',
@@ -21,6 +21,6 @@ def test_real_mode_starts_at_actual_tqqq_inception() -> None:
 	)
 
 	assert data.index.is_monotonic_increasing
-	assert data.index.min() == pd.Timestamp('2010-02-11')
+	assert data.index.min() == pd.Timestamp('2005-01-03')
 	assert data.index.max() == pd.Timestamp('2010-02-12')
 	assert {'QQQ_Close', 'TQQQ_Open', 'TQQQ_Close', 'sma80', 'sma190'}.issubset(data.columns)

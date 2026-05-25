@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-import os
+from pathlib import Path
 
 import pandas as pd
 import yfinance as yf
+
+
+DATA_DIR = Path("data")
 
 
 def _normalize_and_slice_prices(
@@ -39,10 +42,16 @@ def download_single_ticker(
 
 	# Prefer local CSVs if available. This keeps downstream scripts offline and
 	# consistent with previously prepared data.
-	local_path = os.path.join("data", f"{ticker.lower()}_data.csv")
-	if os.path.exists(local_path):
-		df = pd.read_csv(local_path, parse_dates=["Date"]) 
+	if ticker.upper() == "TQQQ":
+		local_path = DATA_DIR / "tqqq_backfilled_0%.csv"
+	else:
+		local_path = DATA_DIR / f"{ticker.lower()}_data.csv"
+
+	if local_path.exists():
+		df = pd.read_csv(local_path)
+		df.columns = [str(column).strip().title() for column in df.columns]
 		if "Date" in df.columns:
+			df["Date"] = pd.to_datetime(df["Date"])
 			df = df.set_index("Date")
 
 		if price_column not in df.columns:
