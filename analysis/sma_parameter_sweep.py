@@ -50,6 +50,8 @@ def evaluate(data: pd.DataFrame, short_window: int, long_window: int, deposits: 
         total_invested=result.data["cumulative_invested"].iloc[-1] if deposits else None,
     )
 
+    position_changes = result.data["position"].astype(int).ne(result.data["position"].astype(int).shift(1).fillna(0)).sum()
+
     return_dict = {
         "short": short_window,
         "long": long_window,
@@ -57,7 +59,9 @@ def evaluate(data: pd.DataFrame, short_window: int, long_window: int, deposits: 
         "annualized_return": metrics["annualized_return"],
         "max_drawdown": metrics["max_drawdown"],
         "sharpe_ratio": metrics["sharpe_ratio"],
-        "trade_days": int(result.data.get("trade_executed", pd.Series()).sum()) if "trade_executed" in result.data.columns else 0,
+        # Count actual position changes only; deposit reinvestments remain in the portfolio ledger,
+        # but they are not separate trades.
+        "trade_days": int(position_changes),
         "final_value": float(result.data["portfolio_value"].iloc[-1]),
     }
 
