@@ -93,18 +93,17 @@ def extract_trades(
 	entry_date = None
 	entry_price = None
 	shares = 0.0
+	previous_position = 0
 
 	for idx, row in backtest_data.iterrows():
 		price = float(row[price_column]) if price_column in row and not pd.isna(row[price_column]) else float(row.get("TQQQ_Close", 0.0))
 		position = int(row[position_column])
-		position_changed = row.get("trade_executed", 0)
 
-		if position_changed == 1:
-			if position == 1:
+		if position == 1 and previous_position == 0:
 				entry_date = idx
 				entry_price = price
 				shares = float(row.get("shares", 0))
-			elif position == 0 and entry_date is not None:
+		elif position == 0 and previous_position == 1 and entry_date is not None:
 				exit_date = idx
 				exit_price = price
 				trade_return = (exit_price - entry_price) / entry_price
@@ -119,6 +118,8 @@ def extract_trades(
 				entry_date = None
 				entry_price = None
 				shares = 0.0
+
+		previous_position = position
 
 	return trades
 

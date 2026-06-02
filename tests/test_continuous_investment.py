@@ -5,6 +5,7 @@ import pandas as pd
 
 from src.backtest import run_backtest
 from src.data_loader import generate_annual_deposits
+from src.metrics import extract_trades
 from src.strategy import generate_signals
 
 
@@ -81,3 +82,24 @@ def test_backtest_runs_without_deposits() -> None:
 	# Without deposits, cumulative_invested should stay at initial capital
 	assert result.data["cumulative_invested"].iloc[0] == 10_000.0
 	assert result.data["cumulative_invested"].iloc[-1] == 10_000.0
+
+
+def test_extract_trades_ignores_deposit_reinvestment_days() -> None:
+	"""Test that deposit-driven reinvestments do not reset an open trade."""
+	index = pd.to_datetime(["2020-01-01", "2020-01-02", "2020-01-03", "2020-01-04"])
+	data = pd.DataFrame(
+		{
+			"position": [0, 1, 1, 0],
+			"trade_executed": [0, 1, 1, 1],
+			"trade_price": [100.0, 101.0, 102.0, 103.0],
+			"shares": [0.0, 10.0, 10.0, 0.0],
+			"TQQQ_Close": [100.0, 101.0, 102.0, 103.0],
+		},
+		index=index,
+	)
+
+	trades = extract_trades(data)
+
+	assert len(trades) == 1
+	assert trades[0]["entry_date"] == pd.Timestamp("2020-01-02")
+	assert trades[0]["exit_date"] == pd.Timestamp("2020-01-04")

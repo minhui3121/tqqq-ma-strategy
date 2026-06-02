@@ -43,7 +43,7 @@ def download_single_ticker(
 	# Prefer local CSVs if available. This keeps downstream scripts offline and
 	# consistent with previously prepared data.
 	if ticker.upper() == "TQQQ":
-		local_path = DATA_DIR / "tqqq_backfilled_0%.csv"
+		local_path = DATA_DIR / "tqqq_backfilled_10%.csv"
 	else:
 		local_path = DATA_DIR / f"{ticker.lower()}_data.csv"
 
