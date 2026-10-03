@@ -30,6 +30,5 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           REPORT_TO: ${{ secrets.REPORT_TO }}
-          REPORT_TIMEZONE: America/Toronto
         run: |
           python daily_email_report.py

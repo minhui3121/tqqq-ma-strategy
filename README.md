@@ -71,7 +71,7 @@ No longer needed: the repo ships with pre-synthesized TQQQ data, so the strategy
 
 This repo includes a workflow at `.github/workflows/daily-email-report.yml`.
 
-It sends one email at 21:00 UTC on weekdays (5:00 PM during Montreal daylight time and 4:00 PM during standard time) and also supports manual runs from the Actions tab.
+It sends one email at 5:00 PM Montreal time on weekdays and also supports manual runs from the Actions tab.
 
 ### Required GitHub repository secrets
 
@@ -83,11 +83,10 @@ Go to **Settings -> Secrets and variables -> Actions -> New repository secret** 
 - `SMTP_PASSWORD` (SMTP app password)
 - `REPORT_TO` (recipient email)
 
-The workflow uses the `America/Toronto` timezone for the report's generated-at timestamp and Yahoo Finance date range. For local runs, set `REPORT_TIMEZONE` or pass `--timezone` with an IANA timezone name. The signal date still identifies the latest market session returned by Yahoo Finance.
-
 ### Enable and test
 
 1. Push your branch with `.github/workflows/daily-email-report.yml` to GitHub.
 2. Open the **Actions** tab and select **Daily Email Report**.
 3. Click **Run workflow** to test immediately.
 4. Check the run logs to confirm email delivery.
+

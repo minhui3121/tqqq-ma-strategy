@@ -14,16 +14,13 @@ from __future__ import annotations
 import argparse
 import os
 import smtplib
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from email.message import EmailMessage
-from zoneinfo import ZoneInfo
 
 import pandas as pd
 import yfinance as yf
 
 from src.strategy import generate_signals
-
-DEFAULT_TIMEZONE = "America/Toronto"
 
 
 def parse_args() -> argparse.Namespace:
@@ -43,11 +40,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--short-window", type=int, default=80, help="Short SMA window.")
     parser.add_argument("--long-window", type=int, default=190, help="Long SMA window.")
     parser.add_argument("--lookback-days", type=int, default=500, help="Calendar days of history to fetch.")
-    parser.add_argument(
-        "--timezone",
-        default=os.getenv("REPORT_TIMEZONE", DEFAULT_TIMEZONE),
-        help=f"IANA timezone for report time and date range (default: {DEFAULT_TIMEZONE}).",
-    )
     parser.add_argument("--dry-run", action="store_true", help="Print email content without sending.")
     return parser.parse_args()
 
@@ -121,20 +113,9 @@ def download_yahoo_ticker(ticker: str, start_date: str, end_date: str) -> pd.Dat
     return data
 
 
-def report_time_window(
-    timezone_name: str,
-    lookback_days: int,
-    now: datetime | None = None,
-) -> tuple[datetime, date, date]:
-    timezone = ZoneInfo(timezone_name)
-    local_now = (now or datetime.now(timezone)).astimezone(timezone)
-    end_date = local_now.date() + timedelta(days=1)
-    start_date = end_date - timedelta(days=lookback_days)
-    return local_now, start_date, end_date
-
-
 def build_report(args: argparse.Namespace) -> tuple[str, str, str]:
-    local_now, start_date, end_date = report_time_window(args.timezone, args.lookback_days)
+    end_date = datetime.utcnow().date() + timedelta(days=1)
+    start_date = end_date - timedelta(days=args.lookback_days)
 
     qqq = download_yahoo_ticker("QQQ", str(start_date), str(end_date))
     tqqq = download_yahoo_ticker("TQQQ", str(start_date), str(end_date))
@@ -167,7 +148,7 @@ def build_report(args: argparse.Namespace) -> tuple[str, str, str]:
     dist_190 = pct_distance(qqq_close, sma190)
 
     signal_date = pd.Timestamp(signals.index[-1]).strftime("%Y-%m-%d")
-    generated_at = f"{local_now:%Y-%m-%d %H:%M %Z} ({args.timezone})"
+    generated_at = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
 
     action = action_text(today_target, yesterday_target)
 
